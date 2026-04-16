@@ -6,6 +6,8 @@ const APP_TITLE = 'WorkTimer';
 const FLOATING_WINDOW_WIDTH = 330;
 const FLOATING_WINDOW_HEIGHT = 436;
 const MIN_WINDOW_HEIGHT = 360;
+const COMPACT_WINDOW_WIDTH = 164;
+const COMPACT_WINDOW_HEIGHT = 54;
 const LUNCH_MINUTES = 60;
 const WORK_MINUTES = 8 * 60;
 const ALERT_BEFORE_END_MINUTES = 10;
@@ -24,19 +26,21 @@ function getTodayKey() {
   }).format(new Date());
 }
 
-function createDefaultState(todayKey = getTodayKey()) {
+function createDefaultState(todayKey = getTodayKey(), compactMode = false) {
   return {
     dateKey: todayKey,
     startTimeIso: null,
     alertSent: false,
     endSent: false,
     stopped: false,
+    compactMode,
   };
 }
 
 function normalizeState(rawState) {
   const todayKey = getTodayKey();
-  const defaultState = createDefaultState(todayKey);
+  const compactMode = Boolean(rawState?.compactMode);
+  const defaultState = createDefaultState(todayKey, compactMode);
 
   if (!rawState || typeof rawState !== 'object') {
     return defaultState;
@@ -90,37 +94,56 @@ function getDefaultWindowPosition(display) {
   };
 }
 
+function getWindowBounds(display, compactMode, requestedHeight = FLOATING_WINDOW_HEIGHT) {
+  const { workArea } = display;
+
+  if (compactMode) {
+    return {
+      x: Math.round(workArea.x + workArea.width - COMPACT_WINDOW_WIDTH - WINDOW_MARGIN),
+      y: Math.round(workArea.y + workArea.height - COMPACT_WINDOW_HEIGHT - WINDOW_MARGIN),
+      width: COMPACT_WINDOW_WIDTH,
+      height: COMPACT_WINDOW_HEIGHT,
+    };
+  }
+
+  const maxHeight = Math.max(MIN_WINDOW_HEIGHT, workArea.height - WINDOW_MARGIN * 2);
+  const fallbackHeight =
+    typeof requestedHeight === 'number' && requestedHeight >= MIN_WINDOW_HEIGHT
+      ? requestedHeight
+      : FLOATING_WINDOW_HEIGHT;
+  const nextHeight = Math.min(
+    Math.max(MIN_WINDOW_HEIGHT, Math.ceil(fallbackHeight)),
+    maxHeight
+  );
+
+  return {
+    x: Math.round(workArea.x + workArea.width - FLOATING_WINDOW_WIDTH - WINDOW_MARGIN),
+    y: Math.round(workArea.y + workArea.height - nextHeight - WINDOW_MARGIN),
+    width: FLOATING_WINDOW_WIDTH,
+    height: nextHeight,
+  };
+}
+
 function resizeWindowToContent(requestedHeight) {
   if (!mainWindow || mainWindow.isDestroyed()) {
     return;
   }
 
+  const state = readState();
   const display = screen.getDisplayMatching(mainWindow.getBounds());
-  const { workArea } = display;
-  const maxHeight = Math.max(MIN_WINDOW_HEIGHT, workArea.height - WINDOW_MARGIN * 2);
-  const nextHeight = Math.min(
-    Math.max(MIN_WINDOW_HEIGHT, Math.ceil(Number(requestedHeight) || FLOATING_WINDOW_HEIGHT)),
-    maxHeight
-  );
-  const nextX = Math.round(workArea.x + workArea.width - FLOATING_WINDOW_WIDTH - WINDOW_MARGIN);
-  const nextY = Math.round(workArea.y + workArea.height - nextHeight - WINDOW_MARGIN);
+  const nextBounds = getWindowBounds(display, state.compactMode, requestedHeight);
   const currentBounds = mainWindow.getBounds();
 
   if (
-    currentBounds.width === FLOATING_WINDOW_WIDTH &&
-    currentBounds.height === nextHeight &&
-    currentBounds.x === nextX &&
-    currentBounds.y === nextY
+    currentBounds.width === nextBounds.width &&
+    currentBounds.height === nextBounds.height &&
+    currentBounds.x === nextBounds.x &&
+    currentBounds.y === nextBounds.y
   ) {
     return;
   }
 
-  mainWindow.setBounds({
-    x: nextX,
-    y: nextY,
-    width: FLOATING_WINDOW_WIDTH,
-    height: nextHeight,
-  });
+  mainWindow.setBounds(nextBounds);
 }
 
 function createTrayIcon() {
@@ -240,6 +263,7 @@ function sendStateToRenderer() {
     workMinutes: WORK_MINUTES,
     lunchMinutes: LUNCH_MINUTES,
     alertBeforeEndMinutes: ALERT_BEFORE_END_MINUTES,
+    compactMode: state.compactMode,
   });
 }
 
@@ -257,17 +281,18 @@ function showNotification(title, body) {
 
 function createWindow() {
   const display = screen.getPrimaryDisplay();
-  const windowPosition = getDefaultWindowPosition(display);
+  const state = readState();
+  const initialBounds = getWindowBounds(display, state.compactMode, FLOATING_WINDOW_HEIGHT);
   const maxWindowHeight = Math.max(MIN_WINDOW_HEIGHT, display.workArea.height - WINDOW_MARGIN * 2);
 
   mainWindow = new BrowserWindow({
-    x: windowPosition.x,
-    y: windowPosition.y,
-    width: FLOATING_WINDOW_WIDTH,
-    height: FLOATING_WINDOW_HEIGHT,
+    x: initialBounds.x,
+    y: initialBounds.y,
+    width: initialBounds.width,
+    height: initialBounds.height,
     icon: getIconFilePath(),
-    minWidth: FLOATING_WINDOW_WIDTH,
-    minHeight: MIN_WINDOW_HEIGHT,
+    minWidth: COMPACT_WINDOW_WIDTH,
+    minHeight: COMPACT_WINDOW_HEIGHT,
     maxWidth: FLOATING_WINDOW_WIDTH,
     maxHeight: maxWindowHeight,
     frame: false,
@@ -387,7 +412,8 @@ ipcMain.handle('timer:stop', () => {
 });
 
 ipcMain.handle('timer:reset', () => {
-  const nextState = createDefaultState(getTodayKey());
+  const state = readState();
+  const nextState = createDefaultState(getTodayKey(), state.compactMode);
   writeState(nextState);
   sendStateToRenderer();
   return nextState;
@@ -401,6 +427,19 @@ ipcMain.handle('window:minimize', () => {
 
 ipcMain.handle('window:resize-to-content', (_event, payload = {}) => {
   resizeWindowToContent(payload.height);
+});
+
+ipcMain.handle('window:set-compact-mode', (_event, payload = {}) => {
+  const state = readState();
+  const nextState = {
+    ...state,
+    compactMode: Boolean(payload.compactMode),
+  };
+
+  writeState(nextState);
+  resizeWindowToContent(payload.height);
+  sendStateToRenderer();
+  return nextState;
 });
 
 ipcMain.handle('window:close', () => {

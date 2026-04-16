@@ -21,6 +21,10 @@ body {
   color: #f3f6fb;
 }
 
+body.compact-mode {
+  padding: 0;
+}
+
 button {
   font: inherit;
 }
@@ -77,6 +81,13 @@ h1 {
   background: rgba(255, 255, 255, 0.08);
   color: #f3f6fb;
   cursor: pointer;
+}
+
+.mode-button {
+  width: auto;
+  min-width: 40px;
+  padding: 0 8px;
+  font-size: 10px;
 }
 
 .content {
@@ -211,4 +222,38 @@ h1 {
 .time-input:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+body.compact-mode .window-shell {
+  gap: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(15, 17, 22, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+body.compact-mode .titlebar,
+body.compact-mode .summary-grid,
+body.compact-mode .manual-start,
+body.compact-mode .actions,
+body.compact-mode .label,
+body.compact-mode .status-text {
+  display: none;
+}
+
+body.compact-mode .content {
+  display: block;
+}
+
+body.compact-mode .countdown {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+body.compact-mode .countdown-value {
+  font-size: 28px;
+  line-height: 1;
+  white-space: nowrap;
 }

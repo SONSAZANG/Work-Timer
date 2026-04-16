@@ -7,12 +7,14 @@ const setNowButton = document.getElementById('setNowButton');
 const startButton = document.getElementById('startButton');
 const stopButton = document.getElementById('stopButton');
 const resetButton = document.getElementById('resetButton');
+const compactModeButton = document.getElementById('compactModeButton');
 const minimizeButton = document.getElementById('minimizeButton');
 const closeButton = document.getElementById('closeButton');
 
 const TIME_ZONE = 'Asia/Seoul';
 let manualTimeDirty = false;
 let lastRequestedHeight = 0;
+let latestState = null;
 
 function formatTime(isoString) {
   if (!isoString) {
@@ -49,7 +51,11 @@ function formatDuration(milliseconds) {
 function syncWindowSize() {
   const shell = document.querySelector('.window-shell');
 
-  if (!shell) {
+  if (!shell || !latestState) {
+    return;
+  }
+
+  if (latestState.compactMode) {
     return;
   }
 
@@ -68,11 +74,19 @@ function syncWindowSize() {
 }
 
 function renderState(state) {
+  const previousCompactMode = latestState?.compactMode;
+  latestState = state;
   const isRunning = Boolean(state.startTimeIso) && !state.stopped;
   const isLocked = Boolean(state.startTimeIso) || state.stopped;
   const endAt = state.expectedEndIso ? new Date(state.expectedEndIso).getTime() : null;
   const now = new Date(state.nowIso).getTime();
   const diff = endAt ? endAt - now : 9 * 60 * 60 * 1000;
+
+  if (previousCompactMode !== state.compactMode) {
+    lastRequestedHeight = 0;
+  }
+
+  document.body.classList.toggle('compact-mode', state.compactMode);
 
   startTime.textContent = state.startTimeIso ? formatTime(state.startTimeIso) : '00:00:00';
   endTime.textContent = state.expectedEndIso ? formatTime(state.expectedEndIso) : '00:00:00';
@@ -101,6 +115,7 @@ function renderState(state) {
   setNowButton.disabled = isLocked;
   startButton.disabled = isRunning || state.stopped;
   stopButton.disabled = !isRunning;
+  compactModeButton.disabled = state.compactMode;
   window.requestAnimationFrame(syncWindowSize);
 }
 
@@ -115,6 +130,10 @@ manualStartTimeInput.addEventListener('input', () => {
 setNowButton.addEventListener('click', () => {
   manualStartTimeInput.value = formatTimeInputValue(new Date());
   manualTimeDirty = true;
+});
+
+compactModeButton.addEventListener('click', async () => {
+  await window.workTimer.setCompactMode(true, 0);
 });
 
 startButton.addEventListener('click', async () => {
@@ -141,6 +160,14 @@ minimizeButton.addEventListener('click', async () => {
 
 closeButton.addEventListener('click', async () => {
   await window.workTimer.close();
+});
+
+window.addEventListener('dblclick', async () => {
+  if (!latestState?.compactMode) {
+    return;
+  }
+
+  await window.workTimer.setCompactMode(false, document.body.scrollHeight);
 });
 
 window.workTimer.onTimerState(renderState);
