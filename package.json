@@ -1,0 +1,57 @@
+{
+  "name": "worktimer",
+  "version": "1.0.0",
+  "description": "Floating desktop work timer for Windows.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^41.2.1",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.local.worktimer",
+    "productName": "WorkTimer",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "files": [
+      "assets/**/*",
+      "index.html",
+      "main.js",
+      "package.json",
+      "preload.js",
+      "renderer.js",
+      "styles.css"
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/worktimer-icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "WorkTimer",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true
+    }
+  }
+}

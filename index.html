@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WorkTimer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="window-shell">
+      <header class="titlebar">
+        <div class="title-copy">
+          <p class="eyebrow">오늘 출근</p>
+          <h1>퇴근까지 계산</h1>
+        </div>
+        <div class="titlebar-actions">
+          <button id="minimizeButton" class="chrome-button" type="button" aria-label="최소화">
+            _
+          </button>
+          <button id="closeButton" class="chrome-button" type="button" aria-label="트레이로 숨기기">
+            ×
+          </button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="summary-grid">
+          <section class="summary">
+            <p class="label">출근 시각</p>
+            <p id="startTime" class="value">00:00:00</p>
+          </section>
+
+          <section class="summary accent">
+            <p class="label">퇴근 예정 <span class="label-note">(10분 전 알림)</span></p>
+            <p id="endTime" class="value">00:00:00</p>
+          </section>
+        </section>
+
+        <section class="manual-start">
+          <div class="manual-start-header">
+            <p class="label">출근 시간 입력</p>
+            <button id="setNowButton" class="inline-button" type="button">지금</button>
+          </div>
+          <input id="manualStartTime" class="time-input" type="time" step="60" />
+          <p class="helper-text">실제 출근 시각으로 맞춰두고 시작하세요.</p>
+        </section>
+
+        <section class="countdown">
+          <p class="label">남은 시간</p>
+          <p id="remainingTime" class="countdown-value">09:00:00</p>
+          <p id="statusText" class="status-text">출근 도장을 찍고 시작하세요.</p>
+        </section>
+
+        <section class="actions">
+          <button id="startButton" class="primary-button" type="button">출근 시작</button>
+          <button id="stopButton" class="secondary-button" type="button">퇴근 완료</button>
+          <button id="resetButton" class="ghost-button" type="button">오늘 기록 초기화</button>
+        </section>
+      </main>
+    </div>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
