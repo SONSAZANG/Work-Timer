@@ -1,4 +1,5 @@
 # Work-Timer
+<img width="328" height="449" alt="image" src="https://github.com/user-attachments/assets/4c10e7b1-d5a0-44b6-b9e2-d3eee664e084" />
 
 ## 한국어
 
